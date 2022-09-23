@@ -123,9 +123,9 @@ async function receiveQuerylogs(regionGroupCreds) {
     console.log("Failed! Final response:");
     console.log(result);
   } else {
-    console.log(`The logs have been requested but not received. Note, if you requested for a
-time-range with no activity, currently the request will be frozen in this state. This is an
-open item we are actively working on fixing.`);
+    console.log(`The logs have been requested but not yet received. If you requested
+logs for a time-range with no activity, currently the request freezes.
+This is an open item we are actively working on fixing.`);
     console.log(result);
   }
 }
@@ -136,7 +136,7 @@ async function getEmailPassword() {
     const p = await prompts({
       type: 'text',
       name: 'value',
-      message: "What's the email address of your preview account?",
+      message: "Enter the email address for your Preview account?",
       validate: value => value.trim() === "" ? "email must be non-empty" : true
     });
     email = p.value.trim();
@@ -146,7 +146,7 @@ async function getEmailPassword() {
     const p = await prompts({
       type: 'text',
       name: 'value',
-      message: "What's the password of your preview account?",
+      message: "Enter the password for your Preview account?",
       validate: value => value.trim() === "" ? "password must be non-empty" : true
     });
     password = p.value;
@@ -165,7 +165,7 @@ async function getInputs(regionGroupCreds) {
       name: 'value',
       message: 'Export logs for a database or a region group?',
       choices: [
-        { title: 'Database', description: 'Receive logs for a particular database (database is determined by which database owns the key you used to query - dashboard queries will not be associated with any database - receive logs for a region group to access those).', value: 'database' },
+        { title: 'Database', description: 'Receive logs for a particular database (database is determined by which database owns the key you used to query - Dashboard queries are not associated with any database, receive logs for a Region Group to access those).', value: 'database' },
         { title: 'Region Group', description: 'Receive all logs for a region group.', value: 'regionGroup' },
       ],
       initial: 1
@@ -178,7 +178,7 @@ async function getInputs(regionGroupCreds) {
       const p = await prompts({
         type: 'text',
         name: 'value',
-        message: "What's path of database (e.g. classic/parent-db/child-db, us-std/my-db, eu-std/other-db)?",
+        message: "Enter the path of database (e.g. classic/parent-db/child-db, us-std/my-db, eu-std/other-db)?",
         validate: (value) => {
           const parts = value.split("/");
           if (!validRegionGroups.includes(parts[0])) {
@@ -214,7 +214,7 @@ async function getInputs(regionGroupCreds) {
     const p = await prompts({
       type: 'date',
       name: 'value',
-      message: 'Pick a date-time to begin receiving querylogs, inclusive.',
+      message: 'Pick a date-time to begin receiving query logs, inclusive.',
       initial: new Date(new Date().getTime() - (24 * 60 * 60 *1000))
     });
     startTime = p.value.toISOString();
@@ -224,7 +224,7 @@ async function getInputs(regionGroupCreds) {
     const p = await prompts({
       type: 'date',
       name: 'value',
-      message: 'Pick a date-time to stop receiving querylogs, exclusive.',
+      message: 'Pick a date-time to stop receiving query logs, exclusive.',
       initial: new Date(),
     });
     endTime = p.value.toISOString();
@@ -244,7 +244,7 @@ async function getInputs(regionGroupCreds) {
 }
 
 runDemo()
-  .then(() => console.log("Thanks for trying out querylogs! Please give us any and all feedback!"))
+  .then(() => console.log("Thanks for trying out query logs! Please give us any and all feedback!"))
   .catch((e) => {
     console.log("Issue executing");
     console.error(e);
