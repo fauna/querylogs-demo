@@ -2,13 +2,26 @@ const axios = require('axios').default;
 const prompts = require("prompts");
 const https = require('https');
 const fs = require('fs');
+const winston = require('winston');
+
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  defaultMeta: { service: 'querylogs-demo' },
+  transports: [
+    // - Write all logs with importance level of `error` or less to `error.log`
+    // - Write all logs with importance level of `info` or less to `combined.log`
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' }),
+  ],
+});
 
 const frontdoorClient = axios.create({
   baseURL: "https://frontdoor.prev.faunadb.net",
   timeout: 10000,
 });
 
-async function getRegionGroupSecrets(email, password) {
+async function getRegionGroupSecrets() {
   const authServiceClient = axios.create({
     baseURL: "https://auth-console.fauna-preview.com",
     timeout: 20000,
@@ -37,6 +50,7 @@ async function getRegionGroupSecrets(email, password) {
         console.log("Invalid username or password entered; please try again");
         continue;
       }
+      logger.error(e.response?.data);
       throw e;
     }
   }
@@ -75,11 +89,14 @@ async function receiveQuerylogs(regionGroupCreds) {
     } catch (e) {
       if (e.response?.status === 404) {
         console.log(`${e.response.data.reason} Please pick another input.`);
+        continue;
       }
       if (e.response?.status === 401) {
         console.log("You've lost your session - another client may have logged in with these credentials; please run the demo again.")
         process.exit(1);
       }
+      logger.error(e.response?.data);
+      throw e;
     }
   }
   console.log("Polling for results for 2 minutes");
@@ -183,7 +200,6 @@ async function getInputs(regionGroupCreds) {
         { title: 'Database', description: 'Receive logs for a particular database (database is determined by which database owns the key you used to query - Dashboard queries are not associated with any database, receive logs for a Region Group to access those).', value: 'database' },
         { title: 'Region Group', description: 'Receive all logs for a region group.', value: 'regionGroup' },
       ],
-      initial: 1
     });
     databaseOrRegionGroup = p.value;
   })();
@@ -219,7 +235,6 @@ async function getInputs(regionGroupCreds) {
           { title: 'us-std', description: 'The us-std region group', value: 'us-std' },
           { title: 'eu-std', description: 'The eu-std region group', value: 'eu-std' },
         ],
-        initial: 1
       });
       regionGroup = p.value;
     })();
@@ -261,6 +276,6 @@ async function getInputs(regionGroupCreds) {
 runDemo()
   .then(() => console.log("Thanks for trying out query logs! Please give us any and all feedback!"))
   .catch((e) => {
-    console.log("Issue executing");
-    console.error(e);
+    console.log("Issue executing. See error.log");
+    logger.error(e);
   });
