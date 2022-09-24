@@ -51,7 +51,7 @@ async function runDemo() {
       const p = await prompts({
         type: 'confirm',
         name: 'value',
-        message: 'Query more logs?',
+        message: 'Receive more query logs?',
       });
       keepGoing = p.value;
     })();
@@ -59,14 +59,29 @@ async function runDemo() {
 }
 
 async function receiveQuerylogs(regionGroupCreds) {
-  const { input, bearerToken, regionGroup } = await getInputs(regionGroupCreds);
-  const headers = { Authorization: bearerToken }
-  const { data: querylogRequest } = await frontdoorClient.post(
-    "/api/v1/querylogs",
-    input,
-    { headers }
-  );
-  console.log(querylogRequest);
+  let input, bearerToken, regionGroup;
+  let querylogRequest;
+  while (true) {
+    try {
+      ({ input, bearerToken, regionGroup } = await getInputs(regionGroupCreds));
+      headers = { Authorization: bearerToken };
+      ({ data: querylogRequest } = await frontdoorClient.post(
+        "/api/v1/querylogs",
+        input,
+        { headers }
+      ));
+      console.log(querylogRequest);
+      break;  
+    } catch (e) {
+      if (e.response?.status === 404) {
+        console.log(`${e.response.data.reason} Please pick another input.`);
+      }
+      if (e.response?.status === 401) {
+        console.log("You've lost your session - another client may have logged in with these credentials; please run the demo again.")
+        process.exit(1);
+      }
+    }
+  }
   console.log("Polling for results for 2 minutes");
   const maxRuntimeMs = 120 * 1000;
   const startTime = Date.now();
@@ -136,7 +151,7 @@ async function getEmailPassword() {
     const p = await prompts({
       type: 'text',
       name: 'value',
-      message: "Enter the email address for your Preview account?",
+      message: "Enter the email address for your Preview account",
       validate: value => value.trim() === "" ? "email must be non-empty" : true
     });
     email = p.value.trim();
@@ -146,7 +161,7 @@ async function getEmailPassword() {
     const p = await prompts({
       type: 'text',
       name: 'value',
-      message: "Enter the password for your Preview account?",
+      message: "Enter the password for your Preview account",
       validate: value => value.trim() === "" ? "password must be non-empty" : true
     });
     password = p.value;
@@ -178,7 +193,7 @@ async function getInputs(regionGroupCreds) {
       const p = await prompts({
         type: 'text',
         name: 'value',
-        message: "Enter the path of database (e.g. classic/parent-db/child-db, us-std/my-db, eu-std/other-db)?",
+        message: "Enter the path of database (e.g. classic/parent-db/child-db, us-std/my-db, eu-std/other-db)",
         validate: (value) => {
           const parts = value.split("/");
           if (!validRegionGroups.includes(parts[0])) {
@@ -198,7 +213,7 @@ async function getInputs(regionGroupCreds) {
       const p = await prompts({
         type: 'select',
         name: 'value',
-        message: 'Which region group?',
+        message: 'Pick a region group',
         choices: [
           { title: 'classic', description: 'The classic region group', value: 'classic' },
           { title: 'us-std', description: 'The us-std region group', value: 'us-std' },
