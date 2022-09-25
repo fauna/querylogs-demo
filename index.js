@@ -4,6 +4,15 @@ const https = require('https');
 const fs = require('fs');
 const winston = require('winston');
 
+const RED = "\x1b[1m\x1b[31m";
+const YELLOW = "\x1b[1m\x1b[33m%s\x1b[0m";
+const GREEN = "\x1b[32m";
+const RESET = "\x1b[0m";
+
+const log_red = (item) => console.log(RED, item, RESET);
+const log_yellow = (item) => console.log(YELLOW, item, RESET);
+const log_green = (item) => console.log(GREEN, item, RESET);
+
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
@@ -47,7 +56,7 @@ async function getRegionGroupSecrets() {
       }
     } catch (e) {
       if (e.response?.status === 401) {
-        console.log("Invalid username or password entered; please try again");
+        log_yellow("Invalid username or password entered; please try again");
         continue;
       }
       logger.error(e.response?.data);
@@ -88,18 +97,18 @@ async function receiveQuerylogs(regionGroupCreds) {
       break;  
     } catch (e) {
       if (e.response?.status === 404) {
-        console.log(`${e.response.data.reason} Please pick another input.`);
+        log_yellow(`${e.response.data.reason} Please pick another input.`);
         continue;
       }
       if (e.response?.status === 401) {
-        console.log("You've lost your session - another client may have logged in with these credentials; please run the demo again.")
+        log_red("You've lost your session - another client may have logged in with these credentials; please run the demo again.");cos
         process.exit(1);
       }
       logger.error(e.response?.data);
       throw e;
     }
   }
-  console.log("Polling for results for 2 minutes");
+  log_green("Polling for results for 2 minutes");
   const maxRuntimeMs = 120 * 1000;
   const startTime = Date.now();
   let result;
@@ -114,7 +123,7 @@ async function receiveQuerylogs(regionGroupCreds) {
     !["Complete", "Failed"].includes(result.state)
   );
   if (result.state === "Complete") {
-    console.log("Complete! Final response:");
+    log_green("Complete! Final response:");
     console.log(result);
     console.log(`You can download your logs here: ${result.url}`);
     let download;
@@ -143,7 +152,7 @@ async function receiveQuerylogs(regionGroupCreds) {
         response.pipe(file);
         file.on("finish", () => {
           file.close();
-          console.log("Download Completed");
+          log_green("Download Completed");
         });
       });
       req.end();
@@ -152,10 +161,10 @@ async function receiveQuerylogs(regionGroupCreds) {
       }
     }
   } else if (result.state === "Failed") {
-    console.log("Failed! Final response:");
+    log_red("Failed! Final response:");
     console.log(result);
   } else {
-    console.log(`The logs have been requested but not yet received. If you requested
+    log_yellow(`The logs have been requested but not yet received. If you requested
 logs for a time-range with no activity, currently the request freezes.
 This is an open item we are actively working on fixing.`);
     console.log(result);
@@ -274,8 +283,8 @@ async function getInputs(regionGroupCreds) {
 }
 
 runDemo()
-  .then(() => console.log("Thanks for trying out query logs! Please give us any and all feedback!"))
+  .then(() => log_green("Thanks for trying out query logs! Please give us any and all feedback!"))
   .catch((e) => {
-    console.log("Issue executing. See error.log");
+    log_red("Issue executing. See error.log");
     logger.error(e);
   });
