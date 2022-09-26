@@ -163,6 +163,10 @@ async function receiveQuerylogs(regionGroupCreds) {
   } else if (result.state === "Failed") {
     log_red("Failed! Final response:");
     console.log(result);
+  } else if (result.state === "DoesNotExist") {
+    log_green("Complete! Final response:");
+    console.log(result);
+    log_yellow("No query logs exist for your query. As such, the final response is 'DoesNotExist' with no URL.");
   } else {
     log_yellow(`The logs have been requested but not yet received. If you requested
 logs for a time-range with no activity, currently the request freezes.
