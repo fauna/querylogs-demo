@@ -101,7 +101,7 @@ async function receiveQuerylogs(regionGroupCreds) {
         continue;
       }
       if (e.response?.status === 401) {
-        log_red("You've lost your session - another client may have logged in with these credentials; please run the demo again.");cos
+        log_red("You've lost your session - another client may have logged in with these credentials; please run the demo again.");
         process.exit(1);
       }
       logger.error(e.response?.data);
@@ -120,7 +120,7 @@ async function receiveQuerylogs(regionGroupCreds) {
     await new Promise((resolve) => setTimeout(resolve, 1000));
   } while (
     Date.now() < startTime + maxRuntimeMs &&
-    !["Complete", "Failed"].includes(result.state)
+    !["Complete", "Failed", "DoesNotExist"].includes(result.state)
   );
   if (result.state === "Complete") {
     log_green("Complete! Final response:");
@@ -168,9 +168,7 @@ async function receiveQuerylogs(regionGroupCreds) {
     console.log(result);
     log_yellow("No query logs exist for your request. As such, the final response is 'DoesNotExist' with no URL.");
   } else {
-    log_yellow(`The logs have been requested but not yet received. If you requested
-logs for a time-range with no activity, currently the request freezes.
-This is an open item we are actively working on fixing.`);
+    log_yellow(`The logs have been requested but not yet received. Please retry, or cut support an issue if you continue to see this.`);
     console.log(result);
   }
 }
