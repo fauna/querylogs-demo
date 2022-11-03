@@ -89,7 +89,7 @@ async function receiveQuerylogs(regionGroupCreds) {
       ({ input, bearerToken, regionGroup } = await getInputs(regionGroupCreds));
       headers = { Authorization: bearerToken };
       ({ data: querylogRequest } = await frontdoorClient.post(
-        "/api/v1/querylogs",
+        "/api/v1/logs?type=query",
         input,
         { headers }
       ));
@@ -114,7 +114,7 @@ async function receiveQuerylogs(regionGroupCreds) {
   let result;
   do {
     ({ data: result } = await frontdoorClient.get(
-      `/api/v1/querylogs/${querylogRequest.requestId}?regionGroup=${regionGroup}`,
+      `/api/v1/logs/${querylogRequest.requestId}?regionGroup=${regionGroup}&type=query`,
       { headers }
     ));
     await new Promise((resolve) => setTimeout(resolve, 1000));
