@@ -51,7 +51,6 @@ async function getRegionGroupSecrets() {
       );
       return {
         "us-std": `Bearer ${data.regionGroups["us"].secret}`,
-        "eu-std": `Bearer ${data.regionGroups["eu"].secret}`,
         "classic": `Bearer ${data.regionGroups["global"].secret}`,
       }
     } catch (e) {
@@ -97,6 +96,10 @@ async function receiveQuerylogs(regionGroupCreds) {
       break;  
     } catch (e) {
       if (e.response?.status === 404) {
+        log_yellow(`${e.response.data.reason} Please pick another input.`);
+        continue;
+      }
+      if (e.response?.status === 400) {
         log_yellow(`${e.response.data.reason} Please pick another input.`);
         continue;
       }
@@ -198,7 +201,7 @@ async function getEmailPassword() {
 }
 
 async function getInputs(regionGroupCreds) {
-  const validRegionGroups = ["eu-std", "us-std", "classic"];
+  const validRegionGroups = ["us-std", "classic"];
   let databaseOrRegionGroup, regionGroup, database, startTime, endTime;
   
   
@@ -220,11 +223,11 @@ async function getInputs(regionGroupCreds) {
       const p = await prompts({
         type: 'text',
         name: 'value',
-        message: "Enter the path of database (e.g. classic/parent-db/child-db, us-std/my-db, eu-std/other-db)",
+        message: "Enter the path of database (e.g. classic/parent-db/child-db, us-std/my-db)",
         validate: (value) => {
           const parts = value.split("/");
           if (!validRegionGroups.includes(parts[0])) {
-            return "Database path must start with 'eu-std/', 'us-std/' or 'classic/'";
+            return "Database path must start with 'us-std/' or 'classic/'";
           }
           if (parts[1] === undefined || parts[1].trim() === "") {
             return "Database path must include a database name; e.g. 'classic/db-name'"
@@ -244,7 +247,6 @@ async function getInputs(regionGroupCreds) {
         choices: [
           { title: 'classic', description: 'The classic region group', value: 'classic' },
           { title: 'us-std', description: 'The us-std region group', value: 'us-std' },
-          { title: 'eu-std', description: 'The eu-std region group', value: 'eu-std' },
         ],
       });
       regionGroup = p.value;
@@ -287,6 +289,7 @@ async function getInputs(regionGroupCreds) {
 runDemo()
   .then(() => log_green("Thanks for trying out query logs! Please give us any and all feedback!"))
   .catch((e) => {
-    log_red("Issue executing. See error.log");
+    log_red("Issue executing:");
+    console.log(e);
     logger.error(e);
   });
