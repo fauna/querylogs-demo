@@ -113,22 +113,22 @@ async function receiveQuerylogs(regionGroupCreds) {
   }
   log_green("Polling for results for 2 minutes");
   const maxRuntimeMs = 120 * 1000;
-  const startTime = Date.now();
+  const time_start = Date.now();
   let result;
   do {
     ({ data: result } = await frontdoorClient.get(
-      `/api/v1/logs/${querylogRequest.requestId}?regionGroup=${regionGroup}&type=query`,
+      `/api/v1/logs/${querylogRequest.request_id}?regionGroup=${regionGroup}&type=query`,
       { headers }
     ));
     await new Promise((resolve) => setTimeout(resolve, 1000));
   } while (
-    Date.now() < startTime + maxRuntimeMs &&
+    Date.now() < time_start + maxRuntimeMs &&
     !["Complete", "Failed", "DoesNotExist"].includes(result.state)
   );
   if (result.state === "Complete") {
     log_green("Complete! Final response:");
     console.log(result);
-    console.log(`You can download your logs here: ${result.url}`);
+    console.log(`You can download your logs here: ${result.presigned_url}`);
     let download;
     await (async () => {
       const p = await prompts({
@@ -151,7 +151,7 @@ async function receiveQuerylogs(regionGroupCreds) {
       })();
       const file = fs.createWriteStream(fileName);
 
-      const req = https.get(result.url, function(response) {
+      const req = https.get(result.presigned_url, function(response) {
         response.pipe(file);
         file.on("finish", () => {
           file.close();
@@ -202,7 +202,7 @@ async function getEmailPassword() {
 
 async function getInputs(regionGroupCreds) {
   const validRegionGroups = ["us-std", "classic"];
-  let databaseOrRegionGroup, regionGroup, database, startTime, endTime;
+  let databaseOrRegionGroup, regionGroup, database, time_start, time_end;
   
   
   await (async () => {
@@ -260,7 +260,7 @@ async function getInputs(regionGroupCreds) {
       message: 'Pick a date-time to begin receiving query logs, inclusive.',
       initial: new Date(new Date().getTime() - (24 * 60 * 60 *1000))
     });
-    startTime = p.value.toISOString();
+    time_start = p.value.toISOString();
   })();
 
   await (async () => {
@@ -270,15 +270,15 @@ async function getInputs(regionGroupCreds) {
       message: 'Pick a date-time to stop receiving query logs, exclusive.',
       initial: new Date(),
     });
-    endTime = p.value.toISOString();
+    time_end = p.value.toISOString();
   })();
 
   const input = {
-    startTime,
-    endTime,
+    time_start,
+    time_end,
   };
   if (database === undefined) {
-    input.regionGroup = regionGroup;
+    input.region_group = regionGroup;
   } else {
     input.database = database;
   }
