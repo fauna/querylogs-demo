@@ -4,7 +4,8 @@
   "description": "Demo of using Fauna's querylog APIs.",
   "main": "index.js",
   "scripts": {
-    "demo": "node index.js"
+    "demo": "node index.js",
+    "example-program": "node example-program.js"
   },
   "author": "Fauna",
   "license": "ISC",
