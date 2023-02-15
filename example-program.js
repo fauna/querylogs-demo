@@ -41,6 +41,10 @@ async function getLogs() {
   await pollResults(querylogRequest, headers, "us-std");
 }
 
+if (process.env["ACCOUNT_KEY"] === undefined) {
+  logger.error("You must set ACCOUNT_KEY in your local environment to run this program!");
+  return;
+}
 
 async function pollResults(
   querylogRequest,
