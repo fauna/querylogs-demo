@@ -1,5 +1,6 @@
 const axios = require('axios').default;
 const winston = require('winston');
+const lux = require("luxon");
 
 const frontdoorClient = axios.create({
   baseURL: "https://frontdoor.fauna.com",
@@ -30,11 +31,14 @@ const logger = winston.createLogger({
   ],
 });
 
+const today = lux.DateTime.now().toISO();
+const yesterday = lux.DateTime.now().minus(lux.Duration.fromISO("P1D")).toISO();
+
 async function getLogs() {
   const headers = { Authorization: `Bearer ${process.env["ACCOUNT_KEY"]}` };
   const { data: querylogRequest } = await frontdoorClient.post(
     "/api/v1/logs?type=query",
-    { region_group: "us-std", time_start: "2023-02-14T00:00:00Z", time_end: "2023-02-15T00:00:00Z"},
+    { region_group: "us-std", time_start: yesterday, time_end: today},
     { headers }
   );
   logger.info(querylogRequest);
