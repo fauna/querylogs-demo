@@ -10,7 +10,7 @@ const frontdoorClient = axios.create({
 /**
    This example program shows you how to use an Account Key to fetch
    logs programmatically. You could extend such a program to act on any
-   region group or time-bad according to your input; and extend it further
+   region group or time-bound according to your input; and extend it further
    to fetch the logs with the resulting presigned_url and then dump it into
    your observability platform.
 
