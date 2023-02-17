@@ -1,0 +1,128 @@
+api:
+  enabled: true
+data_dir: /var/lib/vector
+
+sources:
+  querylog_directory:
+    type: file
+    include: 
+      - /var/log/querylog/*
+
+transforms:
+  parsing:
+    type: "remap"
+    inputs:
+      - querylog_directory
+    source: |-
+      . = parse_json!(string!(.message))
+
+  # {"BYTE_READ_OPS":0,"BYTE_WRITE_OPS":0,"COMPUTE_OPS":1,"DATABASE":[],"QUERY_TIME_MS":169,"REGION_GROUP":"us-std","RESPONSE_CODE":"200","TAGS":{ "region": "us-east-1", "domain": "analytics", "query": "find_user_by_location"},"TS":"2022-09-20 21:39:06.455","TXN_RETRIES":0}
+  remap_querylog_to_array_of_logs:
+    type: remap
+    inputs:
+      - parsing
+    source: |-
+      tags = .TAGS
+      tags.database = join(.DATABASE, "/") ?? ""
+      tags.region_group = .REGION_GROUP
+      tags.response_code = .RESPONSE_CODE
+      tags.service = "fauna-querylogs"
+
+      ts = .TS
+
+      next = []
+      next = push(next, { "namespace": "fauna_demo", "name": "byte_read_ops", "type": "gauge", "field": .BYTE_READ_OPS, "tags": tags, "timestamp": ts })
+      next = push(next, { "namespace": "fauna_demo", "name": "byte_write_ops", "type": "gauge", "field": .BYTE_WRITE_OPS, "tags": tags, "timestamp": ts })
+      next = push(next, { "namespace": "fauna_demo", "name": "compute_ops", "type": "gauge", "field": .COMPUTE_OPS, "tags": tags, "timestamp": ts })
+      next = push(next, { "namespace": "fauna_demo", "name": "query_time_ms", "type": "gauge", "field": .QUERY_TIME_MS, "tags": tags, "timestamp": ts })
+      next = push(next, { "namespace": "fauna_demo", "name": "txn_retries", "type": "gauge", "field": .TXN_RETRIES, "tags": tags, "timestamp": ts })
+      . = next
+
+  remap_gauge_log_to_datadog_metric:
+    type: lua
+    version: "2"
+    inputs:
+      - remap_querylog_to_array_of_logs
+    hooks:
+      process: process
+    source: |-
+        timestamp_pattern = "(%d%d%d%d)[-](%d%d)[-](%d%d) (%d%d):(%d%d):(%d%d).?(%d*)"
+
+        function parse_timestamp(str)
+          local year, month, day, hour, min, sec, millis = string.match(str, timestamp_pattern)
+          local ms = 0
+          if millis and millis ~= "" then
+            ms = tonumber(millis)
+          end
+          return {
+            year    = tonumber(year),
+            month   = tonumber(month),
+            day     = tonumber(day),
+            hour    = tonumber(hour),
+            min     = tonumber(min),
+            sec     = tonumber(sec),
+            nanosec = ms * 1000000
+          }
+        end
+
+        function process(event, emit)
+          event.metric = {
+            name = event.log.name,
+            namespace = event.log.namespace,
+            kind = "absolute",
+            timestamp = os.date("!*t"),
+            tags = event.log.tags,
+            gauge = {
+              value = event.log.field
+            }
+          }
+          event.log = nil
+          emit(event)
+        end
+
+sinks:
+  datadog_metrics:
+    type: datadog_metrics
+    inputs:
+      - remap_*_to_datadog_metric
+    default_api_key: "${DD_API_KEY:?err}"
+
+
+tests:
+  - name: "parsing -> parsing"
+    inputs:
+      - type: raw
+        insert_at: parsing
+        value: |-
+          {"BYTE_READ_OPS":0,"BYTE_WRITE_OPS":0,"COMPUTE_OPS":1,"DATABASE":[],"QUERY_TIME_MS":169,"REGION_GROUP":"us-std","RESPONSE_CODE":"200","TAGS":{ "region": "us-east-1", "domain": "analytics", "query": "find_user_by_location"},"TS":"2022-09-20 21:39:06.455","TXN_RETRIES":0}
+
+    outputs:
+      - extract_from: parsing
+        conditions:
+          - type: vrl
+            source: |-
+              assert!(exists(.BYTE_READ_OPS))
+              assert!(exists(.BYTE_WRITE_OPS))              
+              assert!(exists(.COMPUTE_OPS))
+              assert!(exists(.BYTE_WRITE_OPS))              
+              assert!(exists(.TAGS))
+              assert!(exists(.DATABASE))
+
+  - name: "parsing -> remap_querylog_to_array_of_logs -> remap_gauge_log_to_datadog_metric"
+    inputs:
+      - type: raw
+        insert_at: parsing
+        value: |-
+          {"BYTE_READ_OPS":0,"BYTE_WRITE_OPS":0,"COMPUTE_OPS":1,"DATABASE":[],"QUERY_TIME_MS":169,"REGION_GROUP":"us-std","RESPONSE_CODE":"200","TAGS":{ "region": "us-east-1", "domain": "analytics", "query": "find_user_by_location"},"TS":"2022-09-20 21:39:06.455","TXN_RETRIES":0}
+
+    outputs:
+      - extract_from: remap_querylog_to_array_of_logs
+        conditions:
+          - type: vrl
+            source: |-
+              assert!(exists(.namespace))
+              assert!(exists(.name))
+              assert!(exists(.type))
+              assert!(exists(.field))
+              assert!(exists(.tags))
+              assert!(exists(.timestamp))       
