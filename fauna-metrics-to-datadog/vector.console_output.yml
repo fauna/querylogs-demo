@@ -1,0 +1,7 @@
+sinks:
+  console_output:
+    type: console
+    inputs:
+      - remap_gauge_log_to_datadog_metric
+    encoding:
+      codec: "text"
