@@ -1,0 +1,21 @@
+frameworkVersion: '3'
+
+service: FaunaLogsToDatadog  # Replace with your desired service name
+
+provider:
+  name: aws
+  runtime: nodejs20.x  # Adjust as needed
+
+functions:
+  myLambdaFunction:
+    memorySize: 1024  # Adjust as needed
+    handler: index.handler  # Assuming your handler is in index.js and named 'handler'
+    events:
+      - schedule:
+          rate: rate(20 minutes)  # Replace with your desired schedule expression, currently set to run once every hour
+plugins:
+  - serverless-dotenv-plugin
+  - serverless-offline
+custom:
+  dotenv:
+    path: .env  # Specify the path to your .env file containing environment variables
