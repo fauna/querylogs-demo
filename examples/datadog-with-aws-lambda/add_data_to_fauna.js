@@ -6,7 +6,7 @@ const {fql, Client} = require('fauna');
 require('dotenv').config();
 
 const makeLogs = async () => {
-    const client = new Client({ secret: process.env.FAUNA_SECRET});
+    const client = new Client({ secret: process.env.FAUNA_DB_SECRET});
 
     try {
         let numbers = Array.from({ length: 10 }, () => Math.floor(Math.random() * 1000));
