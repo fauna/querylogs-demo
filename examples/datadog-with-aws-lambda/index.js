@@ -14,25 +14,25 @@ exports.handler = async (event) => {
         // Get the current time
         const currentTime = new Date();
 
-        // Calculate one hour ago from the current time
-        const oneHourAgo = new Date(currentTime.getTime() - 60 * 60 * 1000);
+        // Calculate 'logsDurationAgo' based on the environment variable for minutes
+        const logsDurationInMinutes = new Date(currentTime.getTime() - (parseInt(process.env.LOGS_DURATION_MINUTES, 10) || 60) * 60 * 1000);
+
 
         // Format the dates in ISO 8601 format
-        const timeStart = oneHourAgo.toISOString();
+        const timeStart = logsDurationInMinutes.toISOString();
         const timeEnd = currentTime.toISOString();
 
         console.log("ACCOUNT_KEY:", process.env["ACCOUNT_KEY"]);
         const { data: querylogRequest } = await faunaClient.post(
             "/api/v1/logs?type=query",
             {
-                region_group: "us-std",
+                region_group: `${process.env.REGION_GROUP}`,
                 time_start: timeStart,
                 time_end: timeEnd,
-                database: "us-std/random_numbers"
+                database: `${process.env.REGION_GROUP}/${process.env.DATABASE_NAME}`
             },
             { headers }
         );
-        console.log("Query Log Request:", querylogRequest);
         await pollResults(querylogRequest, headers, "us-std");
   }
 

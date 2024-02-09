@@ -1,8 +1,10 @@
 service: FaunaLogsToDatadog  # Replace with your desired service name
 
+useDotenv: true
+
 provider:
   name: aws
-  runtime: nodejs20  # Adjust as needed
+  runtime: nodejs20.x  # Adjust as needed
 
 functions:
   myLambdaFunction:
